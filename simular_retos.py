@@ -34,14 +34,15 @@ FILAS=500
 #6. Construyo una funcion para generar los N datos pedidos (LIMPIOS)
 def generar_datos_limpios(numero_datos=FILAS):
     filas=[]
-    for_in range(numero_datos):
+    for _ in range(numero_datos):
         filas.append({
-            "id",
-            "nombre",
-            "descripcion",
-            "fecha_inicio",
-            "estado",
-            "id_empresa",
-            "id_categoria",
-            "id_prioridad"
+            "id": str(uuid.uuid4()),
+            "nombre": fake.sentence(nb_words=4),
+            "descripcion": fake.text(),
+            "fecha_inicio": fake.date_this_month(),
+            "estado": random.choice(ESTADO),
+            "id_empresa": str(uuid.uuid4()),
+            "id_categoria": str(uuid.uuid4()),
+            "id_prioridad": str(uuid.uuid4())
         })
+    return filas
