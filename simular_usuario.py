@@ -44,3 +44,62 @@ def generar_datos_limpios(numero_datos = FILAS):
 variabes_noche =pd.DataFrame( generar_datos_limpios() )
 
 #Ensuciar los datos
+
+#1. Crear una funcion para definir porcentajes de error(Procesos estacasticos=inyectar un porcentaje de error en los datos)
+
+def generar_muestra(datos, porcentaje):
+    return datos.sample(fraccion=porcentaje, random_state=random.randint(0,9999)).index
+
+#2. Crear una funcion para escribir mal un texto
+
+def escribir_mal(texto):
+    variantes = [texto.lower(), f" {texto.title()} ", texto.upper(), texto.capitalize()]
+    return random.choice(variantes)
+
+#3. Crear una funcion para convertir booleanos en textos
+
+def convertir_booleano_a_texto(valor):
+    if valor:
+        return random.choice(["SI", "1"])
+    return random.choice(["NO", "0"])
+
+#4. Funcion para ensuciar los datos
+
+def ensuciar(datos_df):
+    datos_df = datos_df.copy()
+
+    #nombre: 10% con espacios sobrantes, 8% Mayuscula
+    filas_elegidas = generar_muestra(datos_df, 0.10)
+    datos_df.loc[filas_elegidas, "nombre"] = " " + datos_df.loc[filas_elegidas, "nombre"] + " "
+
+    filas_elegidas = generar_muestra(datos_df, 0.08)
+    datos_df.loc[filas_elegidas, "nombre"] = datos_df.loc[filas_elegidas, "nombre"].str.upper()
+
+    # Correo: 12% este en mayusculas, 5% sin el arroba, el 4% en none
+
+    filas_elegidas = generar_muestra(datos_df, 0.12)
+    datos_df.loc[filas_elegidas, "correo"] = datos_df.loc[filas_elegidas, "correo"].str.upper()
+
+    filas_elegidas = generar_muestra(datos_df, 0.05)
+    datos_df.loc[filas_elegidas, "correo"] = datos_df.loc[filas_elegidas, "correo"].str.replace("@", "", regex=False)
+
+    filas_elegidas = generar_muestra(datos_df, 0.04)
+    datos_df.loc[filas_elegidas, "correo"] = None
+
+# Rol variantes de escritura (admin ADMIN Admin)
+
+    filas_elegidas = generar_muestra(datos_df, 0.15)
+    datos_df.loc[filas_elegidas, "rol"] = datos_df.loc[filas_elegidas, "rol"].map(escribir_mal)
+
+    #Fecha dos formatos mezaclados (2026-03-154 14:30:00 y 15/03/2026 14:30)
+
+    iso=datos_df["fecha_registro"].dt.strftime("%Y-%m-%d %H:%M:%S")
+    latino=datos_df["fecha_registro"].dt.strftime("%d/%m/%Y %H:%M")
+    datos_df["fecha_registro"] = iso
+    filas_elegidas = generar_muestra(datos_df, 0.4)
+    datos_df.loc[filas_elegidas, "fecha_registro"] = latino.loc["filas_elegidas"]
+
+    #activo en ocaciones llega SI NO o 0
+
+    filas_elegidas = generar_muestra(datos_df, 0.27)
+    datos_df.loc[filas_elegidas, "activo"] =  datos_df.loc[filas_elegidas, "activo"].map(convertir_booleano_a_texto)

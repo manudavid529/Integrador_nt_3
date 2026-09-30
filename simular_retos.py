@@ -46,3 +46,31 @@ def generar_datos_limpios(numero_datos=FILAS):
             "id_prioridad": str(uuid.uuid4())
         })
     return filas
+
+#Ensuciar los datos
+
+#1. Crear una funcion para definir porcentajes de error(Procesos estacasticos=inyectar un porcentaje de error en los datos)
+
+def generar_muestra(datos, porcentaje):
+    return datos.sample(fraccion=porcentaje, random_state=random.randint(0,9999)).index
+
+#2. Crear una funcion para escribir mal un texto
+
+def escribir_mal(texto):
+    variantes = [texto.lower(), f" {texto.title()} ", texto.upper(), texto.capitalize()]
+    return random.choice(variantes)
+
+#3. Crear una funcion para convertir booleanos en textos
+
+def convertir_booleano_a_texto(valor):
+    if valor:
+        return random.choice(["SI", "1"])
+    return random.choice(["NO", "0"])
+
+#4. Funcion para ensuciar los datos
+
+def ensuciar(datos_df):
+    datos_df = datos_df.copy()
+
+    #nombre: 10% con espacios sobrantes, 8% Mayuscula
+    filas_elegidas = generar_muestra(datos_df, 0.10)
