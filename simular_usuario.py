@@ -3,31 +3,31 @@ import pandas as pd
 import uuid
 from faker import Faker
 
-#1. Configurar el faker a la region que necesito
+# 1. Configurar Faker a la región requerida
 fake = Faker("es_CO")
 
-#2. Sembrar semilla para tener coherencia en los datos generados
-#simulados
+# 2. Sembrar semillas para coherencia en los datos simulados
 Faker.seed(42)
 random.seed(42)
 
-#3. Identifico los datos que debo simular
-# id (texto (UUID)) 
+# 3. Datos a simular
+# id (texto UUID)
 # nombre (texto)
 # correo (texto)
-# contrasena_hash (texto) 
-# rol (texto) elementos a seleccionar de una lista de roles
-# activa (booleano)
+# contrasena_hash (texto)
+# rol (texto) -> selector
+# activo (booleano)
 # fecha_registro (fecha y hora)
 
-#4. Identificos los datos o el dato que sea un selector de una lista de opciones.
+# 4. Definir opciones válidas
 ROLES = ["ADMIN", "EMPRESA", "PARTICIPANTE"]
 
-#5. Defino mi DATASET de 400 filas simuladas
+# 5. Definir tamaño del dataset
 FILAS = 400
 
-#6. Construyo una funcion que genere los n datos pedidos (LIMPIOS).
-def generar_datos_limpios(numero_datos = FILAS):
+# 6. Generar datos limpios
+
+def generar_datos_limpios(numero_datos=FILAS):
     filas = []
     for _ in range(numero_datos):
         filas.append({
@@ -41,42 +41,42 @@ def generar_datos_limpios(numero_datos = FILAS):
         })
     return filas
 
-variabes_noche =pd.DataFrame( generar_datos_limpios() )
+variables_noche = pd.DataFrame(generar_datos_limpios())
 
-#Ensuciar los datos
-
-#1. Crear una funcion para definir porcentajes de error(Procesos estacasticos=inyectar un porcentaje de error en los datos)
+# 7. Función para definir muestra aleatoria de filas
 
 def generar_muestra(datos, porcentaje):
-    return datos.sample(fraccion=porcentaje, random_state=random.randint(0,9999)).index
+    return datos.sample(frac=porcentaje, random_state=random.randint(0, 9999)).index
 
-#2. Crear una funcion para escribir mal un texto
+# 8. Función para escribir mal un texto
 
 def escribir_mal(texto):
     variantes = [texto.lower(), f" {texto.title()} ", texto.upper(), texto.capitalize()]
     return random.choice(variantes)
 
-#3. Crear una funcion para convertir booleanos en textos
+# 9. Función para convertir booleanos en textos
 
 def convertir_booleano_a_texto(valor):
     if valor:
         return random.choice(["SI", "1"])
     return random.choice(["NO", "0"])
 
-#4. Funcion para ensuciar los datos
+# 10. Función para ensuciar datos
 
 def ensuciar(datos_df):
     datos_df = datos_df.copy()
 
-    #nombre: 10% con espacios sobrantes, 8% Mayuscula
+    # Asegurar tipo datetime para fechas
+    datos_df["fecha_registro"] = pd.to_datetime(datos_df["fecha_registro"])
+
+    # nombre: 10% con espacios sobrantes, 8% mayúsculas
     filas_elegidas = generar_muestra(datos_df, 0.10)
     datos_df.loc[filas_elegidas, "nombre"] = " " + datos_df.loc[filas_elegidas, "nombre"] + " "
 
     filas_elegidas = generar_muestra(datos_df, 0.08)
     datos_df.loc[filas_elegidas, "nombre"] = datos_df.loc[filas_elegidas, "nombre"].str.upper()
 
-    # Correo: 12% este en mayusculas, 5% sin el arroba, el 4% en none
-
+    # correo: 12% en mayúsculas, 5% sin @, 4% nulos
     filas_elegidas = generar_muestra(datos_df, 0.12)
     datos_df.loc[filas_elegidas, "correo"] = datos_df.loc[filas_elegidas, "correo"].str.upper()
 
@@ -86,20 +86,34 @@ def ensuciar(datos_df):
     filas_elegidas = generar_muestra(datos_df, 0.04)
     datos_df.loc[filas_elegidas, "correo"] = None
 
-# Rol variantes de escritura (admin ADMIN Admin)
-
+    # rol: variantes de escritura
     filas_elegidas = generar_muestra(datos_df, 0.15)
     datos_df.loc[filas_elegidas, "rol"] = datos_df.loc[filas_elegidas, "rol"].map(escribir_mal)
 
-    #Fecha dos formatos mezaclados (2026-03-154 14:30:00 y 15/03/2026 14:30)
-
-    iso=datos_df["fecha_registro"].dt.strftime("%Y-%m-%d %H:%M:%S")
-    latino=datos_df["fecha_registro"].dt.strftime("%d/%m/%Y %H:%M")
+    # fecha: dos formatos mezclados
+    iso = datos_df["fecha_registro"].dt.strftime("%Y-%m-%d %H:%M:%S")
+    latino = datos_df["fecha_registro"].dt.strftime("%d/%m/%Y %H:%M")
     datos_df["fecha_registro"] = iso
-    filas_elegidas = generar_muestra(datos_df, 0.4)
-    datos_df.loc[filas_elegidas, "fecha_registro"] = latino.loc["filas_elegidas"]
 
-    #activo en ocaciones llega SI NO o 0
+    filas_elegidas = generar_muestra(datos_df, 0.40)
+    datos_df.loc[filas_elegidas, "fecha_registro"] = latino.loc[filas_elegidas]
 
+    # activo: a veces llega como SI, NO, 0, 1
     filas_elegidas = generar_muestra(datos_df, 0.27)
-    datos_df.loc[filas_elegidas, "activo"] =  datos_df.loc[filas_elegidas, "activo"].map(convertir_booleano_a_texto)
+    datos_df.loc[filas_elegidas, "activo"] = datos_df.loc[filas_elegidas, "activo"].map(convertir_booleano_a_texto)
+
+    # duplicados exactos
+    idx_duplicados = generar_muestra(datos_df, 0.05)
+    duplicados = datos_df.loc[idx_duplicados].copy()
+    datos_df = pd.concat([datos_df, duplicados], ignore_index=True)
+    datos_df = datos_df.sample(frac=1, random_state=42).reset_index(drop=True)
+
+    return datos_df
+
+# Ejecución
+
+datos_sucios = ensuciar(variables_noche)
+
+# Verificación rápida
+print(f"Total de filas: {len(datos_sucios)}")
+print(f"Total de duplicados exactos: {datos_sucios.duplicated().sum()}")
